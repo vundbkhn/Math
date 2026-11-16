@@ -127,6 +127,12 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
 .wheel{transform-box:fill-box;transform-origin:50% 50%;animation:spin 1.1s linear infinite}
 .puf{animation:puf 2.2s ease-out infinite}
 @keyframes puf{0%{transform:translate(0,0) scale(.5);opacity:.8}100%{transform:translate(-28px,-36px) scale(1.6);opacity:0}}
+.fr{display:inline-flex;flex-direction:column;align-items:center;vertical-align:middle;line-height:1.1;margin:0 6px}
+.fr b{display:block;padding:0 6px;font-weight:900}.fr b:first-child{border-bottom:.09em solid currentColor}
+.q .t.sm{font-size:clamp(22px,4.2vw,34px)}
+.opts.txt .opt{font-size:clamp(15px,2.8vw,21px);padding:18px 6px}
+.opts.two{grid-template-columns:repeat(2,1fr)}
+.tip{display:none;margin-top:12px;background:#fff8e1;border:2px solid #ffe08a;border-radius:18px;padding:10px 14px;font-weight:800;color:#7a4b00;font-size:16px;text-align:center}
 </style>
 </head>
 <body>
@@ -140,7 +146,8 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
   <h1>🤖 Bé Học Toán</h1>
   <h2>Chọn bài học</h2>
   <div class="grid g4" id="topics"></div>
-  <h2>Chọn phạm vi</h2>
+  <div id="subWrap" style="display:none"><h2>Chọn bài nhỏ</h2><div class="ranges" id="subs"></div></div>
+  <h2 id="rh">Chọn phạm vi</h2>
   <div class="ranges" id="ranges"></div>
   <button class="big alt" id="resume" style="display:none"></button>
   <button class="big" id="start">Bắt đầu!</button>
@@ -166,6 +173,7 @@ body{touch-action:manipulation;-webkit-user-select:none;user-select:none}
         <div class="t" id="qt"></div>
       </div>
       <div class="opts" id="opts"></div>
+      <div class="tip" id="tip"></div>
     </div>
   </div>
 </section>
@@ -273,13 +281,27 @@ const TOPIC_ICONS={
   </svg>`
 };
 
+Object.assign(TOPIC_ICONS,{
+  mul:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#fff0dc"/><path d="M32 34L68 70M68 34L32 70" stroke="#ff8a1f" stroke-width="15" stroke-linecap="round"/><path d="M32 34L68 70M68 34L32 70" stroke="#ffc266" stroke-width="5" stroke-linecap="round"/><circle cx="24" cy="78" r="5" fill="#4aa8ff"/><circle cx="78" cy="24" r="4.5" fill="#ff789e"/></svg>`,
+  div:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#e3f7f4"/><circle cx="50" cy="29" r="9" fill="#17b890"/><circle cx="50" cy="75" r="9" fill="#17b890"/><rect x="22" y="46" width="56" height="12" rx="6" fill="#17b890"/><rect x="28" y="49" width="40" height="3.5" rx="2" fill="#fff" opacity=".45"/></svg>`,
+  frac:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#fff3d6"/><path d="M48 50L48 20A30 30 0 0 0 18 50Z" fill="#ff9f14" stroke="#fff" stroke-width="2"/><path d="M48 54L48 84A30 30 0 0 1 18 54Z" fill="#ff9f14" stroke="#fff" stroke-width="2"/><path d="M52 50L52 20A30 30 0 0 1 82 50Z" fill="#ff9f14" stroke="#fff" stroke-width="2"/><path d="M52 54L52 84A30 30 0 0 0 82 54Z" fill="#fff" stroke="#e0a030" stroke-width="2"/><circle cx="80" cy="80" r="14" fill="#3a63c8" stroke="#fff" stroke-width="2.5"/><text x="80" y="85" text-anchor="middle" font-size="13" font-weight="900" fill="#fff" font-family="Nunito,sans-serif">3/4</text></svg>`,
+  divis:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#efe9ff"/><rect x="24" y="32" width="42" height="46" rx="12" fill="#7b5cf0" stroke="#fff" stroke-width="2.5"/><text x="45" y="65" text-anchor="middle" font-size="32" font-weight="900" fill="#fff" font-family="Nunito,sans-serif">9</text><circle cx="70" cy="34" r="14" fill="#40c057" stroke="#fff" stroke-width="2.5"/><path d="M63 34L68 39L77 28" stroke="#fff" stroke-width="4" fill="none" stroke-linecap="round" stroke-linejoin="round"/></svg>`,
+  avg:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#e6f4ff"/><rect x="22" y="58" width="16" height="22" rx="4" fill="#4aa8ff"/><rect x="42" y="34" width="16" height="46" rx="4" fill="#ff9f14"/><rect x="62" y="46" width="16" height="34" rx="4" fill="#52c44a"/><path d="M16 54L84 54" stroke="#e84c4c" stroke-width="3.5" stroke-dasharray="6 5" stroke-linecap="round"/></svg>`,
+  geo:`<svg viewBox="0 0 100 100"><circle cx="50" cy="52" r="36" fill="#fff5d6"/><path d="M42 21.5L22 76L80 76" fill="none" stroke="#3a63c8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="M22 76L42 76A20 20 0 0 0 28.8 57.2Z" fill="#ffd8a8" stroke="#ff7b00" stroke-width="2"/><path d="M72 34L86 48L72 62L58 48Z" fill="#ffb347" stroke="#e8890c" stroke-width="3" stroke-linejoin="round"/></svg>`
+});
 const TOPICS=[
   {id:'count',n:'Tập đếm',i:TOPIC_ICONS.count},
   {id:'cmp',n:'So sánh',i:TOPIC_ICONS.cmp},
   {id:'add',n:'Phép cộng',i:TOPIC_ICONS.add},
   {id:'sub',n:'Phép trừ',i:TOPIC_ICONS.sub},
   {id:'bond',n:'Tách gộp',i:TOPIC_ICONS.bond},
-  {id:'seq',n:'Liền trước - sau',i:TOPIC_ICONS.seq}
+  {id:'seq',n:'Liền trước - sau',i:TOPIC_ICONS.seq},
+  {id:'mul',n:'Phép nhân',i:TOPIC_ICONS.mul},
+  {id:'div',n:'Phép chia',i:TOPIC_ICONS.div},
+  {id:'frac',n:'Phân số',i:TOPIC_ICONS.frac},
+  {id:'divis',n:'Chia hết',i:TOPIC_ICONS.divis},
+  {id:'avg',n:'Trung bình cộng',i:TOPIC_ICONS.avg},
+  {id:'geo',n:'Hình học',i:TOPIC_ICONS.geo}
 ];
 const RANGES=[10,20,100,1000];
 let topic='count',range=10,qs=[],idx=0,score=0,locked=false;
@@ -288,13 +310,17 @@ let S={stars:0,topic:'count',range:10,stats:{},game:null};
 try{const o=JSON.parse(localStorage.getItem(SAVE))||JSON.parse(localStorage.getItem('beHocToan.v1'));if(o)Object.assign(S,o);else{const old=+localStorage.getItem('mathStars');if(old)S.stars=old}}catch(e){}
 function save(){try{localStorage.setItem(SAVE,JSON.stringify(S))}catch(e){}}
 if(!TOPICS.some(t=>t.id===S.topic))S.topic='count';
+if(!S.sub)S.sub={};
 topic=S.topic;range=S.range;let res=[];
 
 function show(id){document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id))}
 function buildHome(){
   $('total').textContent=S.stars;
   $('topics').innerHTML=TOPICS.map(t=>{const o=S.stats[t.id+'-'+range];return `<button class="card ${t.id===topic?'sel':''}" data-t="${t.id}"><div class="ic">${t.i}</div>${t.n}<small>${o?`Cao nhất ${o.best}/10 · ${o.plays} lượt`:'Chưa học'}</small></button>`}).join('');
-  $('ranges').innerHTML=RANGES.map(r=>`<button class="pill ${r===range?'sel':''}" data-r="${r}">Phạm vi ${r}</button>`).join('');
+  const nw=NEWT.includes(topic);$('rh').textContent=nw?'Chọn mức độ':'Chọn phạm vi';
+  $('ranges').innerHTML=RANGES.map((r,i)=>`<button class="pill ${r===range?'sel':''}" data-r="${r}">${nw?LVL[i]:'Phạm vi '+r}</button>`).join('');
+  const sd=SUBS[topic],sw=$('subWrap');
+  if(sd){sw.style.display='block';const cur=S.sub[topic]||'all';$('subs').innerHTML=[['all','Tất cả']].concat(sd).map(x=>`<button class="pill ${x[0]===cur?'sel':''}" data-s="${x[0]}">${x[1]}</button>`).join('')}else sw.style.display='none';
   const g=S.game,rb=$('resume'),tp=g&&TOPICS.find(t=>t.id===g.topic);
   if(g&&tp&&g.idx<10){rb.style.display='block';rb.textContent=`▶ Học tiếp: ${tp.n} · phạm vi ${g.range} (câu ${g.idx+1}/10)`}else rb.style.display='none';
 }
@@ -330,6 +356,7 @@ function makeQ(){
     if(mode===1)return{s:'Tách số thích hợp',em:bondHTML(tot,'?',p2),t:'',a:p1,o:opts3(p1,range),say:`${tot} gồm mấy và ${p2}?`};
     return{s:'Tách số thích hợp',em:bondHTML(tot,p1,'?'),t:'',a:p2,o:opts3(p2,range),say:`${tot} gồm ${p1} và mấy?`};
   }
+  if(NEWQ[topic])return NEWQ[topic]();
   /* Điền số liền trước, liền sau, ở giữa */
   const mode=rnd(0,2);
   if(mode===0){
@@ -343,6 +370,167 @@ function makeQ(){
   const mid=rnd(1,range-1);
   return{s:'Điền số ở giữa',em:'',t:`${mid-1} , ? , ${mid+1}`,a:mid,o:opts3(mid,range),say:`Số ở giữa ${mid-1} và ${mid+1} là số nào?`};
 }
+
+/* ===== Bài học mới: Nhân, Chia, Phân số, Chia hết, Trung bình cộng, Hình học ===== */
+const SUBS={
+ frac:[['tu','Tìm tử số'],['mau','Tìm mẫu số'],['ss','So sánh phân số'],['cong','Cộng cùng mẫu'],['tru','Trừ cùng mẫu']],
+ divis:[['dau','Dấu hiệu chia hết'],['tim','Tìm số chia hết']],
+ geo:[['goc','Nhận biết góc'],['hbh','Hình bình hành'],['thoi','Hình thoi']]
+};
+const NEWT=['mul','div','frac','divis','avg','geo'],LVL=['Dễ','Vừa','Khó','Thử thách'];
+const lv=()=>range<=10?0:range<=20?1:range<=100?2:3;
+const pick=a=>a[rnd(0,a.length-1)];
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+const subOf=t=>{const v=S.sub[t];return v&&v!=='all'?v:null};
+const frH=(a,b)=>`<span class="fr"><b>${a}</b><b>${b}</b></span>`;
+const oh=v=>{const m=/^(\d+)\/(\d+)$/.exec(v);return m?frH(m[1],m[2]):esc(v)};
+function mix(c,wr,ds){
+  const s=new Set([c]);wr.forEach(x=>{if(x>0&&s.size<3)s.add(x)});
+  let g=0;while(s.size<3&&g++<60){const v=c+pick(ds)*(Math.random()<.5?1:-1);if(v>0)s.add(v)}
+  let k=1;while(s.size<3)s.add(c+k++);
+  return shuffle([...s]);
+}
+const near=(c,ds)=>mix(c,[],ds);
+function showTip(q){const t=$('tip');if(q.tip){t.textContent='💡 '+q.tip;t.style.display='block'}else t.style.display='none'}
+$('subs').onclick=e=>{const b=e.target.closest('[data-s]');if(b){S.sub[topic]=b.dataset.s;save();buildHome()}};
+
+/* --- Phép nhân --- */
+function qMul(){
+  const L=lv();let a,b;
+  if(L===0){a=rnd(2,5);b=rnd(1,5)}else if(L===1){a=rnd(2,9);b=rnd(2,9)}
+  else if(L===2){a=rnd(10,50);b=rnd(2,9)}else{a=rnd(11,40);b=rnd(11,25)}
+  const c=a*b,tn=a-a%10;
+  const tip=L<2?`${a} × ${b} = ${Array(a).fill(b).join(' + ')} = ${c}`:L===2?`${a} × ${b} = ${tn} × ${b} + ${a%10} × ${b} = ${tn*b} + ${a%10*b} = ${c}`:'';
+  return{s:'Tính tích',em:'',t:`${a} × ${b} = ?`,a:c,o:near(c,L<2?[a,b,1,2,10]:L===2?[b,10,a,20]:[10,a,b,20,100]),say:`${a} nhân ${b} bằng mấy?`,tip};
+}
+/* --- Phép chia --- */
+function qDiv(){
+  const L=lv(),b=rnd(2,L===0?5:9),q=L===0?rnd(1,5):L===1?rnd(2,9):L===2?rnd(11,30):rnd(20,110),a=b*q;
+  return{s:'Tính thương',em:'',t:`${a} ÷ ${b} = ?`,a:q,o:near(q,L<2?[1,2,3]:[1,2,10]),say:`${a} chia ${b} bằng mấy?`,tip:`${b} × ${q} = ${a} nên ${a} ÷ ${b} = ${q}`};
+}
+/* --- Phân số --- */
+function barSVG(b,k){
+  const w=240/b;let r='';
+  for(let i=0;i<b;i++)r+=`<rect x="${f1(5+i*w)}" y="5" width="${f1(w)}" height="44" fill="${i<k?'#ffa94d':'#fff'}" stroke="#2f6fe4" stroke-width="2"/>`;
+  return `<svg viewBox="0 0 250 54" style="width:min(300px,90%);height:auto">${r}</svg>`;
+}
+function fOpts(n,b,alt){
+  const s=new Set([n+'/'+b,alt]);
+  for(const v of shuffle([n+1,n-1,n+2,n-2]))if(s.size<3&&v>0)s.add(v+'/'+b);
+  let k=3;while(s.size<3)s.add((n+k++)+'/'+b);
+  return shuffle([...s]);
+}
+function qFrac(){
+  const L=lv(),DM=[6,9,12,20][L],sb=subOf('frac')||pick(['tu','mau','ss','cong','tru']);
+  if(sb==='tu'||sb==='mau'){
+    const b=rnd(2,DM),k=rnd(1,b-1),T=sb==='tu',v=T?k:b,nm=T?'Tử':'Mẫu';
+    const tip=T?'Tử số là số ở trên gạch ngang: số phần được lấy (tô màu).':'Mẫu số là số ở dưới gạch ngang: số phần bằng nhau của cả hình.';
+    if(Math.random()<.5)return{s:`${nm} số của phân số là?`,em:'',t:frH(k,b),a:v,o:near(v,[1,2,3]),say:`Phân số ${k} phần ${b}. ${nm} số là số nào?`,tip};
+    return{s:`${nm} số của phân số chỉ phần tô màu là?`,em:barSVG(b,k),t:'',a:v,o:near(v,[1,2,3]),say:`${nm} số của phân số chỉ phần tô màu là số nào?`,tip};
+  }
+  if(sb==='ss'){
+    let a,b,c,d,tip;
+    if(L===0){b=d=rnd(3,DM);a=rnd(1,b-1);c=Math.random()<.15?a:rnd(1,b-1);tip='Cùng mẫu số: phân số nào có tử số lớn hơn thì lớn hơn.'}
+    else if(L===1){a=c=rnd(1,5);b=rnd(a+1,DM);d=Math.random()<.15?b:rnd(c+1,DM);tip='Cùng tử số: phân số nào có mẫu số bé hơn thì lớn hơn.'}
+    else if(L===2&&Math.random()<.5){b=rnd(2,DM);a=rnd(1,b+3);c=d=1;tip='Tử số lớn hơn mẫu số thì phân số lớn hơn 1; bằng nhau thì bằng 1; bé hơn thì bé hơn 1.'}
+    else{b=rnd(2,L===2?6:DM);d=L===2?b*2:rnd(2,DM);a=rnd(1,b);c=rnd(1,d);tip='Quy đồng mẫu số rồi so sánh các tử số.'}
+    const l=a*d,r=c*b;
+    return{s:'Chọn dấu thích hợp',em:'',t:`${frH(a,b)} ? ${d===1?'1':frH(c,d)}`,a:l>r?'>':l<r?'<':'=',o:['>','<','='],say:`${a} phần ${b} so với ${d===1?'1':c+' phần '+d}, chọn dấu thích hợp`,tip};
+  }
+  const b=rnd(3,DM);
+  if(sb==='cong'){
+    const a=rnd(1,b-2),c=rnd(1,b-1-a),n=a+c;
+    return{s:'Cộng hai phân số cùng mẫu số',em:'',t:`${frH(a,b)} + ${frH(c,b)} = ?`,a:n+'/'+b,o:fOpts(n,b,n+'/'+b*2),say:`${a} phần ${b} cộng ${c} phần ${b} bằng bao nhiêu?`,tip:`Cộng hai tử số, giữ nguyên mẫu số: ${a} + ${c} = ${n}, mẫu số vẫn là ${b}.`};
+  }
+  const a=rnd(2,b-1),c=rnd(1,a-1),n=a-c;
+  return{s:'Trừ hai phân số cùng mẫu số',em:'',t:`${frH(a,b)} − ${frH(c,b)} = ?`,a:n+'/'+b,o:fOpts(n,b,(a+c)+'/'+b),say:`${a} phần ${b} trừ ${c} phần ${b} bằng bao nhiêu?`,tip:`Trừ hai tử số, giữ nguyên mẫu số: ${a} − ${c} = ${n}, mẫu số vẫn là ${b}.`};
+}
+/* --- Chia hết --- */
+const digs=n=>String(n).split('').reduce((s,x)=>s+ +x,0);
+function whyDiv(n,d){
+  const ok=n%d===0,x=ok?'chia hết':'không chia hết';
+  if(d===2||d===5)return `Chữ số tận cùng của ${n} là ${n%10} → ${n} ${x} cho ${d}.`;
+  const sm=digs(n);return `${String(n).split('').join(' + ')} = ${sm}; ${sm} ${x} cho ${d} → ${n} ${x} cho ${d}.`;
+}
+function mkNum(d,yes){
+  const [lo,hi]=[[10,99],[100,999],[100,999],[1000,9999]][lv()];
+  for(let g=0;g<200;g++){let n=rnd(lo,hi);if(yes){n-=n%d;if(n<lo)n+=d}if((n%d===0)===yes&&n>=lo&&n<=hi)return n}
+  return yes?d*Math.ceil(lo/d):lo+1;
+}
+const SG={2:'Chữ số tận cùng là 0, 2, 4, 6, 8',3:'Tổng các chữ số chia hết cho 3',5:'Chữ số tận cùng là 0 hoặc 5',9:'Tổng các chữ số chia hết cho 9'};
+function qDivis(){
+  const L=lv(),ds=[[2,5],[2,3,5],[2,3,5,9],[2,3,5,9]][L],d=pick(ds),sb=subOf('divis')||pick(['dau','tim']);
+  if(sb==='dau'){
+    if(Math.random()<.3){
+      const ot=shuffle([2,3,5,9].filter(x=>x!==d)).slice(0,2);
+      return{s:'Chọn dấu hiệu đúng',em:'',t:`Chia hết cho ${d}`,sm:1,txt:1,a:SG[d],o:shuffle([SG[d],SG[ot[0]],SG[ot[1]]]),say:`Dấu hiệu chia hết cho ${d} là gì?`,tip:`Dấu hiệu chia hết cho ${d}: ${SG[d]}.`};
+    }
+    const yes=Math.random()<.5,n=mkNum(d,yes);
+    return{s:`Số này có chia hết cho ${d} không?`,em:'',t:String(n),txt:1,a:yes?'Có':'Không',o:['Có','Không'],say:`Số ${n} có chia hết cho ${d} không?`,tip:whyDiv(n,d)};
+  }
+  if(L>=1&&Math.random()<.35){
+    const dd=pick(ds.filter(x=>x!==2)),dg=L>=3?4:3,dig=Array.from({length:dg},(_,i)=>rnd(i?0:1,9)),pos=dd===5?dg-1:rnd(1,dg-1),ok=[],bad=[];
+    for(let x=0;x<=9;x++){const t=dig.slice();t[pos]=x;(+t.join('')%dd===0?ok:bad).push(x)}
+    const c=pick(ok),w=shuffle(bad).slice(0,2),full=dig.slice();full[pos]=c;
+    return{s:`Chọn chữ số thay cho ? để chia hết cho ${dd}`,em:'',t:dig.map((x,i)=>i===pos?'?':x).join(''),a:String(c),o:shuffle([c,...w]).map(String),say:`Chọn chữ số thay cho dấu hỏi để số chia hết cho ${dd}`,tip:whyDiv(+full.join(''),dd)};
+  }
+  const c=mkNum(d,true),w=[];let g=0;
+  while(w.length<2&&g++<100){const x=L>=2?c+pick([-2,-1,1,2,10,-10,11]):mkNum(d,false);if(x>=10&&x%d!==0&&x!==c&&!w.includes(x))w.push(x)}
+  while(w.length<2)w.push(c+1+w.length*d);
+  return{s:'Chọn số thích hợp',em:'',t:`Chia hết cho ${d}`,sm:1,a:c,o:shuffle([c,...w]),say:`Số nào chia hết cho ${d}?`,tip:whyDiv(c,d)};
+}
+/* --- Trung bình cộng --- */
+function qAvg(){
+  const L=lv(),n=[2,3,pick([3,4]),pick([4,5])][L],hi=[20,30,100,200][L],m=rnd(3,hi-2);
+  let arr=null;
+  for(let g=0;g<100&&!arr;g++){
+    const a=[];let sum=0;for(let i=0;i<n-1;i++){const v=rnd(1,hi);a.push(v);sum+=v}
+    const last=n*m-sum;if(last>=1&&last<=hi+Math.floor(hi/3)){a.push(last);arr=a}
+  }
+  if(!arr)arr=Array(n).fill(m);
+  const sum=arr.reduce((x,y)=>x+y,0),avg=sum/n;
+  if(Math.random()<.7)return{s:`Tìm số trung bình cộng của ${n} số`,em:'',t:arr.join(', '),sm:1,a:avg,o:near(avg,[1,2,3,5,10]),say:`Số trung bình cộng của ${arr.join(', ')} là mấy?`,tip:`(${arr.join(' + ')}) ÷ ${n} = ${sum} ÷ ${n} = ${avg}`};
+  const k=rnd(0,n-1),x=arr[k],rest=arr.filter((_,i)=>i!==k);
+  return{s:`Trung bình cộng của ${n} số là ${avg}. Tìm số còn lại`,em:'',t:rest.join(', ')+', ?',sm:1,a:x,o:near(x,[1,2,3,5,10]),say:`Trung bình cộng của ${n} số là ${avg}. Biết ${n-1} số là ${rest.join(', ')}. Tìm số còn lại`,tip:`Tổng ${n} số = ${avg} × ${n} = ${sum}; số còn lại = ${sum} − ${rest.join(' − ')} = ${x}`};
+}
+/* --- Hình học --- */
+const AN=['Góc nhọn','Góc vuông','Góc tù','Góc bẹt'];
+function angSVG(deg,rot){
+  const vx=100,vy=108,L=82,r=26,rd=deg*Math.PI/180,ex=f1(vx+L*Math.cos(rd)),ey=f1(vy-L*Math.sin(rd));
+  const mk=deg===90?`<path d="M${vx+16} ${vy}L${vx+16} ${vy-16}L${vx} ${vy-16}" fill="none" stroke="#ff7b00" stroke-width="4"/>`:`<path d="M${vx} ${vy}L${vx+r} ${vy}A${r} ${r} 0 0 0 ${f1(vx+r*Math.cos(rd))} ${f1(vy-r*Math.sin(rd))}Z" fill="#ffd8a8" stroke="#ff7b00" stroke-width="3"/>`;
+  return `<svg viewBox="0 0 200 140" style="width:min(250px,80%);height:auto"><g transform="rotate(${rot} 100 70)">${mk}<path d="M${vx+L} ${vy}L${vx} ${vy}L${ex} ${ey}" fill="none" stroke="#3a63c8" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><circle cx="${vx}" cy="${vy}" r="5" fill="#e84c4c"/></g></svg>`;
+}
+function paraSVG(a,h,sd){
+  const tx='font-weight="900" font-size="15" font-family="Nunito,sans-serif"';
+  return `<svg viewBox="0 0 290 150" style="width:min(320px,92%);height:auto"><path d="M40 120L200 120L250 40L90 40Z" fill="#cfe3ff" stroke="#2f6fe4" stroke-width="4" stroke-linejoin="round"/><path d="M90 40L90 120" stroke="#e84c4c" stroke-width="3" stroke-dasharray="7 5"/><path d="M90 108L102 108L102 120" fill="none" stroke="#e84c4c" stroke-width="2.5"/><text x="120" y="143" text-anchor="middle" fill="#1e2a52" ${tx}>đáy = ${a} cm</text><text x="98" y="84" fill="#c92a2a" ${tx}>h = ${h} cm</text><text x="238" y="84" fill="#1e2a52" ${tx}>${sd} cm</text></svg>`;
+}
+function rhoSVG(m,n){
+  const tx='font-weight="900" font-size="15" font-family="Nunito,sans-serif" fill="#c92a2a"';
+  return `<svg viewBox="0 0 260 184" style="width:min(300px,90%);height:auto"><path d="M130 12L240 85L130 158L20 85Z" fill="#ffe3b0" stroke="#e8890c" stroke-width="4" stroke-linejoin="round"/><path d="M20 85L240 85M130 12L130 158" stroke="#e84c4c" stroke-width="3" stroke-dasharray="7 5"/><path d="M142 85L142 73L130 73" fill="none" stroke="#e84c4c" stroke-width="2.5"/><text x="185" y="78" text-anchor="middle" ${tx}>m = ${m} cm</text><text x="130" y="178" text-anchor="middle" ${tx}>n = ${n} cm</text></svg>`;
+}
+function qGeo(){
+  const L=lv(),sb=subOf('geo')||pick(['goc','hbh','thoi']);
+  if(sb==='goc'){
+    const k=rnd(0,3);let deg=[0,90,0,180][k];
+    if(k===0)deg=L>=2?rnd(70,89):rnd(15,80);
+    if(k===2)deg=L>=2?rnd(91,115):rnd(100,165);
+    const nm=AN[k],three=()=>shuffle([nm,...shuffle(AN.filter(x=>x!==nm)).slice(0,2)]),m=Math.random();
+    const tip='Góc nhọn bé hơn 90°; góc vuông = 90°; góc tù lớn hơn 90° và bé hơn 180°; góc bẹt = 180°.';
+    if(m<.5)return{s:'Đây là góc gì?',em:angSVG(deg,rnd(-15,15)),t:'',txt:1,a:nm,o:three(),say:'Đây là góc gì?',tip};
+    if(m<.8)return{s:'Góc này là góc gì?',em:'',t:deg+'°',txt:1,a:nm,o:three(),say:`Góc ${deg} độ là góc gì?`,tip};
+    const kk=pick([1,3]),dg=kk===1?90:180;
+    return{s:'Chọn số đo đúng',em:'',t:AN[kk]+' = ?',sm:1,txt:1,a:dg+'°',o:shuffle([dg+'°',(dg===90?180:90)+'°',pick(['45°','60°','120°','360°'])]),say:`${AN[kk]} bằng bao nhiêu độ?`,tip};
+  }
+  if(sb==='hbh'){
+    const R=[[3,8,2,6],[5,15,3,9],[10,30,5,20],[12,60,10,40]][L],a=rnd(R[0],R[1]),h=rnd(R[2],R[3]),c=a*h,sd=h+rnd(1,3);
+    if(Math.random()<.75)return{s:'Tính diện tích hình bình hành',em:paraSVG(a,h,sd),t:'S = ? cm²',a:c,o:mix(c,[a*sd],[a,h,5,10]),say:'Tính diện tích hình bình hành',tip:`Diện tích = đáy × chiều cao = ${a} × ${h} = ${c} cm². Chú ý: dùng chiều cao, không dùng cạnh bên!`};
+    return{s:'Tìm chiều cao hình bình hành',em:'',t:`S = ${c} cm², đáy = ${a} cm`,sm:1,a:h,o:near(h,[1,2,3]),say:`Hình bình hành có diện tích ${c} xăng-ti-mét vuông, đáy ${a} xăng-ti-mét. Tìm chiều cao`,tip:`Chiều cao = S ÷ đáy = ${c} ÷ ${a} = ${h} cm`};
+  }
+  const R=[[2,5,2,8],[3,8,3,12],[5,20,4,30],[10,40,8,60]][L],m=2*rnd(R[0],R[1]),n=rnd(R[2],R[3]),c=m*n/2;
+  if(Math.random()<.75)return{s:'Tính diện tích hình thoi',em:rhoSVG(m,n),t:'S = ? cm²',a:c,o:mix(c,[m*n],[m,n,5,10]),say:'Tính diện tích hình thoi',tip:`Diện tích = m × n ÷ 2 = ${m} × ${n} ÷ 2 = ${c} cm²`};
+  return{s:'Tìm đường chéo còn lại của hình thoi',em:'',t:`S = ${c} cm², m = ${m} cm`,sm:1,a:n,o:near(n,[1,2,3]),say:`Hình thoi có diện tích ${c} xăng-ti-mét vuông, một đường chéo ${m} xăng-ti-mét. Tìm đường chéo còn lại`,tip:`n = S × 2 ÷ m = ${c} × 2 ÷ ${m} = ${n} cm`};
+}
+const NEWQ={mul:qMul,div:qDiv,frac:qFrac,divis:qDivis,avg:qAvg,geo:qGeo};
 
 /* ---------- Minigame đồng bộ phong cách SVG ---------- */
 const TH=[
@@ -851,8 +1039,10 @@ function renderQ(){
   $('sc').textContent=score;
   $('qs').textContent=`Câu ${idx+1}/10 · ${q.s}`;
   $('qem').innerHTML=q.em;
-  $('qt').textContent=q.t;
-  $('opts').innerHTML=q.o.map(v=>`<button class="opt" data-v="${v}">${v}</button>`).join('');
+  $('qt').innerHTML=q.t;$('qt').className='t'+(q.sm?' sm':'');
+  $('opts').className='opts'+(q.txt?' txt':'')+(q.o.length===2?' two':'');
+  $('opts').innerHTML=q.o.map(v=>`<button class="opt" data-v="${esc(v)}">${oh(v)}</button>`).join('');
+  $('tip').style.display='none';
   speak(q.say);
 }
 function toast(t,ok){
@@ -862,7 +1052,7 @@ function toast(t,ok){
 $('opts').onclick=e=>{
   const b=e.target.closest('.opt');if(!b||locked)return;locked=true;
   const q=qs[idx],v=b.dataset.v,ok=String(v)===String(q.a);
-  res[idx]=ok;
+  res[idx]=ok;showTip(q);
   if(ok){
     score++;$('sc').textContent=score;b.classList.add('ok');
     toast(['Đúng rồi!','Tuyệt vời!','Giỏi quá!','Chính xác!'][rnd(0,3)],1);
@@ -874,7 +1064,7 @@ $('opts').onclick=e=>{
     b.classList.add('no');
     document.querySelectorAll('.opt').forEach(x=>{if(x.dataset.v===String(q.a))x.classList.add('ok')});
     toast('Chưa đúng!',0);tone(220,.25);hit(0);
-    setTimeout(()=>{idx++;if(idx<10){S.game={topic,range,qs,idx,score,res,th:TH.indexOf(T)};save();locked=false;renderQ()}else{S.game=null;finish()}},1400);
+    setTimeout(()=>{idx++;if(idx<10){S.game={topic,range,qs,idx,score,res,th:TH.indexOf(T)};save();locked=false;renderQ()}else{S.game=null;finish()}},q.tip?3000:1400);
   }
 };
 function finish(){
